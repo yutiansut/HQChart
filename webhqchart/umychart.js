@@ -141,6 +141,7 @@ function JSChart(divElement)
         }
 
         if (option.StepPixel>0) chart.StepPixel=option.StepPixel;
+        if (option.ZoomStepPixel>0) chart.ZoomStepPixel=option.ZoomStepPixel;
         if (option.IsApiPeriod==true) chart.IsApiPeriod=option.IsApiPeriod;
 
         if (!option.Windows || option.Windows.length<=0) return null;
@@ -689,10 +690,10 @@ function JSChart(divElement)
 
         this.AdjustChartBorder(chart);
 
-        if (option.IsShowCorssCursorInfo==false)    //取消显示十字光标刻度信息
-        {
-            chart.ChartCorssCursor.IsShowText=option.IsShowCorssCursorInfo;
-        }
+        if (option.IsShowCorssCursorInfo==false) chart.ChartCorssCursor.IsShowText=option.IsShowCorssCursorInfo; //取消显示十字光标刻度信息
+        if (option.IsCorssOnlyDrawKLine===true) chart.ChartCorssCursor.IsOnlyDrawKLine=option.IsCorssOnlyDrawKLine;
+        if (option.CorssCursorTouchEnd===true) chart.CorssCursorTouchEnd = option.CorssCursorTouchEnd;
+        if (option.IsClickShowCorssCursor==true) chart.IsClickShowCorssCursor=option.IsClickShowCorssCursor;
 
         if (option.Frame)
         {
@@ -704,6 +705,15 @@ function JSChart(divElement)
                 if (item.StringFormat) chart.Frame.SubFrame[i].Frame.YSplitOperator.StringFormat=item.StringFormat;
                 if (item.IsShowLeftText==false) chart.Frame.SubFrame[i].Frame.YSplitOperator.IsShowLeftText=item.IsShowLeftText;            //显示左边刻度
                 if (item.IsShowRightText==false) chart.Frame.SubFrame[i].Frame.YSplitOperator.IsShowRightText=item.IsShowRightText;         //显示右边刻度 
+            }
+        }
+
+        if (option.ExtendChart)
+        {
+            for(var i in option.ExtendChart)
+            {
+                var item=option.ExtendChart[i];
+                chart.CreateExtendChart(item.Name, item);
             }
         }
 
@@ -1275,7 +1285,8 @@ function JSChartContainer(uielement)
     this.LastPoint=new Point();     //鼠标位置
     this.IsForceLandscape=false;    //是否强制横屏
     this.CorssCursorTouchEnd = false;   //手离开屏幕自动隐藏十字光标
-    this.StepPixel=4;                //移动一个数据需要的像素
+    this.StepPixel=4;                   //移动一个数据需要的像素
+    this.ZoomStepPixel=5;               //放大缩小手势需要的最小像素
     this.EnableAnimation=false;         //是否开启动画
 
     //tooltip提示信息
@@ -1795,9 +1806,16 @@ function JSChartContainer(uielement)
                 var yHeight=Math.abs(touches[0].pageY-touches[1].pageY);
                 var yLastHeight=Math.abs(phonePinch.Last.Y-phonePinch.Last.Y2);
                 var yStep=yHeight-yLastHeight;
-                if (Math.abs(yStep)<5) return;
 
-                if (yStep>0)    //放大
+                var xHeight=Math.abs(touches[0].pageX-touches[1].pageX);
+                var xLastHeight=Math.abs(phonePinch.Last.X-phonePinch.Last.X2);
+                var xStep=xHeight-xLastHeight;
+                var minStep=jsChart.ZoomStepPixel;
+                if (Math.abs(yStep)<minStep && Math.abs(xStep)<minStep) return;
+                var step=yStep;
+                if (Math.abs(yStep)<minStep) step=xStep;
+
+                if (step>0)    //放大
                 {
                     var cursorIndex={};
                     cursorIndex.Index=parseInt(Math.abs(this.JSChartContainer.CursorIndex-0.5).toFixed(0));
@@ -23982,6 +24000,7 @@ function KLineChartContainer(uielement)
         var self = this;
         var dataCount=this.GetRequestDataCount();
         var firstDate=this.SourceData.Data[0].Date;
+        var firstTime=this.SourceData.Data[0].Time;
         for(var i in this.OverlayChartPaint)
         {
             let item=this.OverlayChartPaint[i];
@@ -23998,7 +24017,7 @@ function KLineChartContainer(uielement)
                 {
                     Name:'KLineChartContainer::RequestOverlayHistoryMinuteData', //类名::
                     Explain:'叠加股票分钟K线数据',
-                    Request:{ Url:self.MinuteKLineApiUrl, Data: { symbol: symbol, count: dataCount.MaxRequestMinuteDayCount,"first":{ date: firstDate },
+                    Request:{ Url:self.MinuteKLineApiUrl, Data: { symbol: symbol, count: dataCount.MaxRequestMinuteDayCount,"first":{ date: firstDate, time:firstTime },
                         field:["name","symbol","yclose","open","price","high",'vol','amount'] }, Type:'POST' }, 
                     Self:this,
                     PreventDefault:false

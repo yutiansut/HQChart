@@ -454,6 +454,7 @@ function JSChart(element)
         chart.Create(windowsCount);                            //创建子窗口
 
         if (option.CorssCursorTouchEnd == true) chart.CorssCursorTouchEnd = option.CorssCursorTouchEnd;
+        if (option.IsFullDraw == true) chart.IsFullDraw = option.IsFullDraw;
         if (option.CorssCursorInfo)     //十字光标设置
         {
             if (!isNaN(option.CorssCursorInfo.Left)) chart.ChartCorssCursor.ShowTextMode.Left = option.CorssCursorInfo.Left;
@@ -654,8 +655,19 @@ function JSChart(element)
             if (!isNaN(option.Border.Bottom)) chart.Frame.ChartBorder.Bottom = option.Border.Bottom;
         }
 
+        if (option.ExtendChart) //创建扩展画法
+        {
+            for (var i in option.ExtendChart) 
+            {
+                var item = option.ExtendChart[i];
+                chart.CreateExtendChart(item.Name, item);
+            }
+        }
 
         if (option.IsShowCorssCursorInfo == false) chart.ChartCorssCursor.IsShowText = option.IsShowCorssCursorInfo;//取消显示十字光标刻度信息
+        if (option.CorssCursorTouchEnd == true) chart.CorssCursorTouchEnd = option.CorssCursorTouchEnd;
+        if (option.IsClickShowCorssCursor == true) chart.IsClickShowCorssCursor = option.IsClickShowCorssCursor;
+        if (option.IsFullDraw == true) chart.IsFullDraw = option.IsFullDraw;
 
         if (option.Frame) 
         {
@@ -1022,6 +1034,11 @@ JSChart.SetStyle = function (style) {
   if (style) g_JSChartResource.SetStyle(style);
 }
 
+JSChart.GetResource = function ()  //获取颜色配置 (设置配必须啊在JSChart.Init()之前)
+{
+    return g_JSChartResource;
+}
+
 var JSCHART_EVENT_ID =
 {
     RECV_INDEX_DATA: 2,  //接收指标数据
@@ -1275,9 +1292,15 @@ function JSChartContainer(uielement)
             var yHeight = Math.abs(touches[0].pageY - touches[1].pageY);
             var yLastHeight = Math.abs(phonePinch.Last.Y - phonePinch.Last.Y2);
             var yStep = yHeight - yLastHeight;
-            if (Math.abs(yStep) < 5) return;
+            var xHeight = Math.abs(touches[0].pageX - touches[1].pageX);
+            var xLastHeight = Math.abs(phonePinch.Last.X - phonePinch.Last.X2);
+            var xStep = xHeight - xLastHeight;
+            if (Math.abs(yStep) < 5 && Math.abs(xStep) < 5) return;
 
-            if (yStep > 0)    //放大
+            var step = yStep;
+            if (Math.abs(yStep) < 5) step = xStep;
+
+            if (step > 0)    //放大
             {
                 var cursorIndex = {};
                 cursorIndex.Index = parseInt(Math.abs(jsChart.CursorIndex - 0.5).toFixed(0));
