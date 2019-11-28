@@ -170,6 +170,8 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 40. [HQChart使用教程47-如何自定义右键菜单](https://blog.csdn.net/jones2000/article/details/102720671) <br>
 41. [HQChart使用教程48-如何自定义X轴刻度](https://blog.csdn.net/jones2000/article/details/102741428) <br>
 42. [HQChart使用教程49-指标配置项说明](https://blog.csdn.net/jones2000/article/details/102928907) <br>
+43. [HQChart使用教程50-Y轴自定义刻度设置说明](https://blog.csdn.net/jones2000/article/details/103174483) <br>
+44. [HQChart使用教程51-指标切换按钮事件说明-h5版本](https://blog.csdn.net/jones2000/article/details/103187576) <br>
 
 
 ## 小程序教程
@@ -210,6 +212,10 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 16. [HQChart使用教程30-K线图如何对接第3方数据16-日K叠加股票](https://blog.csdn.net/jones2000/article/details/102661873) <br>
 17. [HQChart使用教程30-K线图如何对接第3方数据17-分钟K叠加股票](https://blog.csdn.net/jones2000/article/details/102887690) <br>
 
+## 实战教程
+1. [HQChart实战教程1-外汇分时图](https://blog.csdn.net/jones2000/article/details/103254501) <br>
+2. [HQChart实战教程1-使用跨周期写指标](https://blog.csdn.net/jones2000/article/details/103275668) <br>
+
 
 ## 设计文档:
 1. [如何(c++,js)写一个传统的K线图和走势图1](https://blog.csdn.net/jones2000/article/details/84779481) <br>
@@ -233,9 +239,16 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 ## 基于VUE版本给客户开发的样例
 [指数行情页面黑色风格](https://opensource.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sh&colorType=black) <br>
 [个股行情页面白色风格](https://opensource.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sz) <br>
+[代码地址(vue.demo/infoHqdemo)](/vue.demo/infoHqdemo) <br>
+
 ## js页面样例
 [个股详情手机端h5](https://opensource.zealink.com/hqweb/hqpages/stockpage.html?) <br>
-[代码地址(webhqchart.demo\h5demo)](/webhqchart.demo/h5demo) <br>
+[代码地址(webhqchart.demo/h5demo)](/webhqchart.demo/h5demo) <br>
+## 第3方数据对接样例
+1. 数字货币对接 <br>
+   数据来源： https://www.coinzeus.io/cn <br>
+   [h5测试页面](https://opensource.zealink.com/hqweb/bitdemo/stockhq.html) <br>
+   [代码地址(vue.demo/bitdemo)](/vue.demo/bitdemo) <br>
 
 
 # QQ交流群(950092318) 
