@@ -46,6 +46,15 @@ var BLACK_STYLE =    //黑色风格
     FrameSplitTextColor: "rgb(101,104,112)",     //刻度文字颜色
     FrameSplitTextFont: "12px 微软雅黑",        //坐标刻度文字字体
     FrameTitleBGColor: "rgb(246,251,253)",      //标题栏背景色
+    Frame: { XBottomOffset: 0 },   //X轴文字向下偏移
+
+    FrameLatestPrice: {
+        TextColor: 'rgb(255,255,255)',   //最新价格文字颜色
+        UpBarColor: "rgb(238,21,21)",    //上涨
+        DownBarColor: "rgb(25,158,0)",   //下跌
+        UnchagneBarColor: "rgb(190,190,190)",   //平盘
+        BGAlpha: 0.6
+    },
 
     CorssCursorBGColor: "rgb(43,54,69)",            //十字光标背景
     CorssCursorTextColor: "rgb(255,255,255)",
@@ -127,6 +136,14 @@ var BLACK_STYLE =    //黑色风格
     {
       LineColor: "rgb(30,144,255)",
       PointColor: "rgb(105,105,105)",
+    },
+
+    TooltipPaint:   //Tooltip
+    {
+        BGColor: 'rgba(20,20,20,0.8)',          //背景色
+        BorderColor: 'rgb(210,210,210)',        //边框颜色
+        TitleColor: 'rgb(210,210,210)',         //标题颜色
+        TitleFont:'13px 微软雅黑'               //字体
     },
     
 };

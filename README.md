@@ -1,3 +1,5 @@
+![logo](./logo2.png)
+
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![github star](https://img.shields.io/github/stars/jones2000/HQChart.svg)]('https://github.com/jones2000/HQChart/stargazers')
 [![github fork](https://img.shields.io/github/forks/jones2000/HQChart.svg)]('https://github.com/jones2000/HQChart/members')
@@ -108,21 +110,21 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 * 支持涨停坐标 <br>
 
 # 3. 网页demo  <br>
-* [K线图](https://opensource.zealink.com/hqweb/demo/phone7.html)  <br>
-* [走势图](https://opensource.zealink.com/hqweb/demo/phone8.html)  <br>
-* [走势图手机页面](https://opensource.zealink.com/hqweb/demo/phone2.html)  <br>
-* [K线图手机页面](https://opensource.zealink.com/hqweb/demo/phone.html)  <br>
-* [横版走势图手机页面](https://opensource.zealink.com/hqweb/demo/phone10.html)  <br>
-* [横版K线图手机页面](https://opensource.zealink.com/hqweb/demo/phone9.html)  <br>
-* [多日走势图](https://opensource.zealink.com/hqweb/demo/phone15.html) <br>
-* [个股筹码图](https://opensource.zealink.com/hqweb/demo/phone18.html) <br>
-* [指标回测(手机版)](https://opensource.zealink.com/hqweb/operatebsh5/index.html?symbol=000001.sz) <br>
-* [K线训练](https://opensource.zealink.com/hqweb/demo/phone13.html) <br>
-* [弹幕功能](https://opensource.zealink.com/hqweb/demo/phone21.html) <br>
-* [多指标叠加](https://opensource.zealink.com/hqweb/demo/phone22.html) <br>
-* [截面数据(财务数据)计算器](https://opensource.zealink.com/hqweb/demo/sectiondatatest.html) <br>
-* [走势图-大盘异动](https://opensource.zealink.com/hqweb/demo/phone23.html) <br>
-* [分笔K线图](https://opensource.zealink.com/hqweb/demo/phone24.html) <br>
+* [K线图](https://opensource2.zealink.com/hqweb/demo/phone7.html)  <br>
+* [走势图](https://opensource2.zealink.com/hqweb/demo/phone8.html)  <br>
+* [走势图手机页面](https://opensource2.zealink.com/hqweb/demo/phone2.html)  <br>
+* [K线图手机页面](https://opensource2.zealink.com/hqweb/demo/phone.html)  <br>
+* [横版走势图手机页面](https://opensource2.zealink.com/hqweb/demo/phone10.html)  <br>
+* [横版K线图手机页面](https://opensource2.zealink.com/hqweb/demo/phone9.html)  <br>
+* [多日走势图](https://opensource2.zealink.com/hqweb/demo/phone15.html) <br>
+* [个股筹码图](https://opensource2.zealink.com/hqweb/demo/phone18.html) <br>
+* [指标回测(手机版)](https://opensource2.zealink.com/hqweb/operatebsh5/index.html?symbol=000001.sz) <br>
+* [K线训练](https://opensource2.zealink.com/hqweb/demo/phone13.html) <br>
+* [弹幕功能](https://opensource2.zealink.com/hqweb/demo/phone21.html) <br>
+* [多指标叠加](https://opensource2.zealink.com/hqweb/demo/phone22.html) <br>
+* [截面数据(财务数据)计算器](https://opensource2.zealink.com/hqweb/demo/sectiondatatest.html) <br>
+* [走势图-大盘异动](https://opensource2.zealink.com/hqweb/demo/phone23.html) <br>
+* [分笔K线图](https://opensource2.zealink.com/hqweb/demo/phone24.html) <br>
 * 小程序demo 请搜索 ‘知临信息软件及数据服务介绍’ 或微信扫描 ![二维码](/小程序行情模块用例/image/wechatrcode.jpg)
 
 
@@ -172,6 +174,7 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 42. [HQChart使用教程49-指标配置项说明](https://blog.csdn.net/jones2000/article/details/102928907) <br>
 43. [HQChart使用教程50-Y轴自定义刻度设置说明](https://blog.csdn.net/jones2000/article/details/103174483) <br>
 44. [HQChart使用教程51-指标切换按钮事件说明-h5版本](https://blog.csdn.net/jones2000/article/details/103187576) <br>
+45. [HQChart使用教程52- 自定义手机端K线图Tooltip](https://blog.csdn.net/jones2000/article/details/103820718) <br>
 
 
 ## 小程序教程
@@ -214,7 +217,10 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 
 ## 实战教程
 1. [HQChart实战教程1-外汇分时图](https://blog.csdn.net/jones2000/article/details/103254501) <br>
-2. [HQChart实战教程1-使用跨周期写指标](https://blog.csdn.net/jones2000/article/details/103275668) <br>
+2. [HQChart实战教程2-使用跨周期写指标](https://blog.csdn.net/jones2000/article/details/103275668) <br>
+3. [HQChart实战教程3-http+ws对接分钟K线数据](https://blog.csdn.net/jones2000/article/details/103882063) <br>
+4. [HQChart实战教程4-http+ws对接日K线数据](https://blog.csdn.net/jones2000/article/details/103966271) <br>
+5. [HQChart实战教程5-http+ws对接单日分时图数据](https://blog.csdn.net/jones2000/article/details/103966925) <br>
 
 
 ## 设计文档:
@@ -228,22 +234,30 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 # 5.VUE 行情项目
 [代码地址(vuehqchart)](/vuehqchart) <br>
 ![走势图2](/小程序行情模块用例/image/pch5hq.PNG)
-[行情页面地址(v1.0）](https://opensource.zealink.com/vuehqweb/hq.demo.page.html) <br><br>
+[行情页面地址(v1.0）](https://opensource2.zealink.com/vuehqweb/hq.demo.page.html) <br><br>
 ![历史高频数据查询图2](/小程序行情模块用例/image/pch5history.PNG)
-[查询页面地址](https://opensource.zealink.com/vuehqweb/queryContent.demo.page.html) <br><br>
+[查询页面地址](https://opensource2.zealink.com/vuehqweb/queryContent.demo.page.html) <br><br>
 ![多周期图2](/小程序行情模块用例/image/pch5hq2.png)
-[多周期页面地址](https://opensource.zealink.com/vuehqweb/stockmultiperiod.demo.page.html) <br><br>
+[多周期页面地址](https://opensource2.zealink.com/vuehqweb/stockmultiperiod.demo.page.html) <br><br>
 ![综合排名2](/小程序行情模块用例/image/pch5hq3.png)
-[综合排名页面地址](https://opensource.zealink.com/vuehqweb/stockmultiorder.demo.page.html) <br><br>
+[综合排名页面地址](https://opensource2.zealink.com/vuehqweb/stockmultiorder.demo.page.html) <br><br>
    
 ## 基于VUE版本给客户开发的样例
-[指数行情页面黑色风格](https://opensource.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sh&colorType=black) <br>
-[个股行情页面白色风格](https://opensource.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sz) <br>
+[指数行情页面黑色风格](https://opensource2.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sh&colorType=black) <br>
+[个股行情页面白色风格](https://opensource2.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sz) <br>
 [代码地址(vue.demo/infoHqdemo)](/vue.demo/infoHqdemo) <br>
 
+## VUE版本手机端样例1
+![手机端行情页面](/小程序行情模块用例/image/hchart_phone_1.png) <br>
+[手机端行情页面](https://opensource2.zealink.com/product/hqNewdemoH5/stockHq.html#/StockHq)<br>
+[代码地址(vue.demo/hq_h5_pages)](/vue.demo/hq_h5_pages) <br>
+
 ## js页面样例
-[个股详情手机端h5](https://opensource.zealink.com/hqweb/hqpages/stockpage.html?) <br>
+![手机端行情页面](/小程序行情模块用例/image/hqchart_phone_2.png) <br>
+[个股详情手机端h5](https://opensource2.zealink.com/hqweb/hqpages/stockpage.html?) <br>
 [代码地址(webhqchart.demo/h5demo)](/webhqchart.demo/h5demo) <br>
+[VUE代码地址(vue.demo/stockpage_h5)](/vue.demo/stockpage_h5) <br>
+
 ## 第3方数据对接样例
 1. 数字货币对接 <br>
    数据来源： https://www.coinzeus.io/cn <br>

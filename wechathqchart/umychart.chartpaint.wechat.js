@@ -839,6 +839,13 @@ function ChartOverlayKLine()
     this.Title;
     this.DrawType = 0;
     this.ClassName ='ChartOverlayKLine';
+    this.CustomDrawType = null;       //图形类型
+
+    this.SetOption = function (option) 
+    {
+        if (!option) return;
+        if (IFrameSplitOperator.IsNumber(option.DrawType)) this.CustomDrawType = option.DrawType;
+    }
 
     this.DrawKBar = function (firstOpen)   //firstOpen 当前屏第1个显示数据
     {
@@ -1219,9 +1226,14 @@ function ChartOverlayKLine()
 
         if (firstOpen == null) return;
 
+        var drawTypeBackup = this.DrawType; //备份下线段类型
+        if (this.CustomDrawType != null) this.DrawType = this.CustomDrawType;
+
         if (this.DrawType == 1) this.DrawCloseLine(firstOpen);
         else if (this.DrawType == 2) this.DrawAKLine(firstOpen);
         else this.DrawKBar(firstOpen);
+
+        this.DrawType = drawTypeBackup; //还原线段类型
     }
 
     this.GetMaxMin = function () 
@@ -1265,7 +1277,7 @@ function ChartOverlayKLine()
     }
 }
 
-// 多文本集合
+// 多文本集合  支持横屏
 function ChartMultiText() 
 {
     this.newMethod = IChartPainting;   //派生
@@ -1276,6 +1288,7 @@ function ChartMultiText()
     this.Texts = [];  //[ {Index:, Value:, Text:, Color:, Font: , Baseline:} ]
     this.Font = g_JSChartResource.DefaultTextFont;
     this.Color = g_JSChartResource.DefaultTextColor;
+    this.IsHScreen = false;   //是否横屏
 
     this.Draw = function () 
     {
@@ -1283,10 +1296,17 @@ function ChartMultiText()
         if (!this.Data || this.Data.length <= 0) return;
         if (!this.Texts) return;
 
+        this.IsHScreen = (this.ChartFrame.IsHScreen === true);
         var xPointCount = this.ChartFrame.XPointCount;
         var offset = this.Data.DataOffset;
         var left = this.ChartBorder.GetLeft();
         var right = this.ChartBorder.GetRight();
+
+        if (this.IsHScreen) 
+        {
+            left = this.ChartBorder.GetTop();
+            right = this.ChartBorder.GetBottom();
+        }
 
         for (var i in this.Texts) 
         {
@@ -1320,7 +1340,19 @@ function ChartMultiText()
                 if (item.Baseline == 1) this.Canvas.textBaseline = 'top';
                 else if (item.Baseline == 2) this.Canvas.textBaseline = 'bottom';
                 else this.Canvas.textBaseline = 'middle';
-                this.Canvas.fillText(item.Text, x, y);
+                if (this.IsHScreen) //横屏旋转
+                {
+                    this.Canvas.save();
+                    this.Canvas.translate(y, x);
+                    this.Canvas.rotate(90 * Math.PI / 180);
+                    this.Canvas.fillText(item.Text, 0, 0);
+                    this.Canvas.restore();
+                }
+                else
+                {
+                    this.Canvas.fillText(item.Text, x, y);
+                }
+                
             }
         }
     }
@@ -1757,6 +1789,72 @@ function ChartMinuteInfo()
     {
         var range = { Min: null, Max: null };
         return range;
+    }
+}
+
+//买卖盘
+function ChartBuySell() 
+{
+    this.newMethod = ChartSingleText;   //派生
+    this.newMethod();
+    delete this.newMethod;
+
+    this.TextFont = g_JSChartResource.KLineTrain.Font;                //"bold 14px arial";           //买卖信息字体
+    this.LastDataIcon = g_JSChartResource.KLineTrain.LastDataIcon; //{Color:'rgb(0,0,205)',Text:'↓'};
+    this.BuyIcon = g_JSChartResource.KLineTrain.BuyIcon; //{Color:'rgb(0,0,205)',Text:'B'};
+    this.SellIcon = g_JSChartResource.KLineTrain.SellIcon; //{Color:'rgb(0,0,205)',Text:'S'};
+    this.BuySellData = new Map();   //{Date:日期*10000+时间, Op:买/卖 0=buy 1=sell}
+    this.LastData = {}; //当前屏最后一个数据
+
+    this.Draw = function () 
+    {
+        if (!this.Data || !this.Data.Data) return;
+
+        var isHScreen = (this.ChartFrame.IsHScreen === true);
+        var dataWidth = this.ChartFrame.DataWidth;
+        var distanceWidth = this.ChartFrame.DistanceWidth;
+        var chartright = this.ChartBorder.GetRight();
+        if (isHScreen === true) chartright = this.ChartBorder.GetBottom();
+        var xPointCount = this.ChartFrame.XPointCount;
+
+        this.Canvas.font = this.TextFont;
+        for (var i = this.Data.DataOffset, j = 0; i < this.Data.Data.length && j < xPointCount; ++i, ++j) 
+        {
+            var value = this.Data.Data[i];
+            if (value == null) continue;
+            if (x > chartright) break;
+
+            this.LastData = { ID: j, Data: value };
+            var key = value.Date * 10000;
+            if (IFrameSplitOperator.IsNumber(value.Time)) key += value.Time;
+            if (!this.BuySellData.has(key)) continue;
+            var bsItem = this.BuySellData.get(key);
+            var x = this.ChartFrame.GetXFromIndex(j);
+            var yHigh = this.ChartFrame.GetYFromData(value.High);
+            var yLow = this.ChartFrame.GetYFromData(value.Low);
+            if (bsItem.Op == 0)   //买 标识在最低价上
+            {
+                this.Canvas.textAlign = 'center';
+                this.Canvas.textBaseline = 'top';
+                this.Canvas.fillStyle = this.BuyIcon.Color;
+                this.DrawText(this.BuyIcon.Text, x, yLow, isHScreen);
+            }
+            else    //买 标识在最高价上
+            {
+                this.Canvas.textAlign = 'center';
+                this.Canvas.textBaseline = 'bottom';
+                this.Canvas.fillStyle = this.SellIcon.Color;
+                this.DrawText(this.SellIcon.Text, x, yHigh, isHScreen);
+            }
+        }
+
+        var x = this.ChartFrame.GetXFromIndex(this.LastData.ID);
+        var yHigh = this.ChartFrame.GetYFromData(this.LastData.Data.High);
+        this.Canvas.textAlign = 'center';
+        this.Canvas.textBaseline = 'bottom';
+        this.Canvas.fillStyle = this.LastDataIcon.Color;
+        this.Canvas.font = this.TextFont;
+        this.DrawText(this.LastDataIcon.Text, x, yHigh, isHScreen);
     }
 }
 
@@ -2499,6 +2597,7 @@ function ChartCorssCursor()
         var xValue = this.Frame.GetXData(x);
         var yValueExtend = {};
         var yValue = this.Frame.GetYData(y, yValueExtend);
+        this.StringFormatY.RValue = yValueExtend.RightYValue; //右侧子坐标
         if (this.IsShowClose && this.Close != null) yValue = this.Close;
 
         this.StringFormatX.Value = xValue;
@@ -2506,12 +2605,14 @@ function ChartCorssCursor()
         this.StringFormatY.FrameID = yValueExtend.FrameID;
 
         if (((this.ShowTextMode.Left == 1 && this.Frame.ChartBorder.Left >= 30) || this.ShowTextMode.Left == 2 ||
-            (this.ShowTextMode.Right == 1 && this.Frame.ChartBorder.Right >= 30) || this.ShowTextMode.Right == 2) && this.StringFormatY.Operator()) {
+            (this.ShowTextMode.Right == 1 && this.Frame.ChartBorder.Right >= 30) || this.ShowTextMode.Right == 2) && this.StringFormatY.Operator()) 
+        {
             var text = this.StringFormatY.Text;
             this.Canvas.font = this.Font;
             var textWidth = this.Canvas.measureText(text).width + 4;    //前后各空2个像素
 
-            if (this.Frame.ChartBorder.Left >= 30 && this.ShowTextMode.Left == 1) {
+            if (this.Frame.ChartBorder.Left >= 30 && this.ShowTextMode.Left == 1) 
+            {
                 this.Canvas.fillStyle = this.TextBGColor;
                 if (left < textWidth) //左边空白的地方太少了画布下
                 {
@@ -2521,7 +2622,8 @@ function ChartCorssCursor()
                     this.Canvas.fillStyle = this.TextColor;
                     this.Canvas.fillText(text, 2 + 2, y, textWidth);
                 }
-                else {
+                else 
+                {
                     this.Canvas.fillRect(left - 2, y - this.TextHeight / 2, -textWidth, this.TextHeight);
                     this.Canvas.textAlign = "right";
                     this.Canvas.textBaseline = "middle";
@@ -2529,7 +2631,8 @@ function ChartCorssCursor()
                     this.Canvas.fillText(text, left - 4, y, textWidth);
                 }
             }
-            else if (this.ShowTextMode.Left == 2) {
+            else if (this.ShowTextMode.Left == 2) 
+            {
                 this.Canvas.fillStyle = this.TextBGColor;
                 this.Canvas.fillRect(left, y - this.TextHeight / 2, textWidth, this.TextHeight);
                 this.Canvas.textAlign = "left";
@@ -2538,7 +2641,14 @@ function ChartCorssCursor()
                 this.Canvas.fillText(text, left + 2, y, textWidth);
             }
 
-            if (this.Frame.ChartBorder.Right >= 30 && this.ShowTextMode.Right == 1) {
+            if (this.StringFormatY.RText) 
+            {
+                text = this.StringFormatY.RText;
+                var textWidth = this.Canvas.measureText(text).width + 4;    //前后各空2个像素
+            }
+
+            if (this.Frame.ChartBorder.Right >= 30 && this.ShowTextMode.Right == 1) 
+            {
                 this.Canvas.fillStyle = this.TextBGColor;
                 if (rightWidth > textWidth)               //右边不够就不画
                 {
@@ -2548,7 +2658,8 @@ function ChartCorssCursor()
                     this.Canvas.fillStyle = this.TextColor;
                     this.Canvas.fillText(text, right + 4, y, textWidth);
                 }
-                else {
+                else 
+                {
                     this.Canvas.fillRect(chartRight - 2 - textWidth, y - this.TextHeight / 2, textWidth, this.TextHeight);
                     this.Canvas.textAlign = "right";
                     this.Canvas.textBaseline = "middle";
@@ -2556,7 +2667,8 @@ function ChartCorssCursor()
                     this.Canvas.fillText(text, chartRight - 4, y, textWidth);
                 }
             }
-            else if (this.ShowTextMode.Right == 2) {
+            else if (this.ShowTextMode.Right == 2) 
+            {
                 this.Canvas.fillStyle = this.TextBGColor;
                 var showLeft = right - textWidth;
                 this.Canvas.fillRect(showLeft, y - this.TextHeight / 2, textWidth, this.TextHeight);
@@ -2567,7 +2679,8 @@ function ChartCorssCursor()
             }
         }
 
-        if (this.ShowTextMode.Bottom == 1 && this.StringFormatX.Operator()) {
+        if (this.ShowTextMode.Bottom == 1 && this.StringFormatX.Operator()) 
+        {
             var text = this.StringFormatX.Text;
             this.Canvas.font = this.Font;
 
@@ -2581,14 +2694,16 @@ function ChartCorssCursor()
                 this.Canvas.fillStyle = this.TextColor;
                 this.Canvas.fillText(text, x + 1, bottom + 2, textWidth);
             }
-            else if ((right - left) - x < textWidth) {            //右边位置不够用，顶着右边画
+            else if ((right - left) - x < textWidth) 
+            {            //右边位置不够用，顶着右边画
                 this.Canvas.fillRect(x - textWidth, bottom + 2, textWidth, this.TextHeight);
                 this.Canvas.textAlign = "right";
                 this.Canvas.textBaseline = "top";
                 this.Canvas.fillStyle = this.TextColor;
                 this.Canvas.fillText(text, x - 1, bottom + 2, textWidth);
             }
-            else {
+            else 
+            {
                 this.Canvas.fillRect(x - textWidth / 2, bottom + 2, textWidth, this.TextHeight);
                 this.Canvas.textAlign = "center";
                 this.Canvas.textBaseline = "top";
@@ -2831,6 +2946,7 @@ module.exports =
         ChartRectangle: ChartRectangle,
         ChartMultiText: ChartMultiText,
         ChartMultiLine: ChartMultiLine,
+        ChartBuySell: ChartBuySell,
 
         ChartPie: ChartPie,
         ChartCircle: ChartCircle,
@@ -2857,5 +2973,6 @@ module.exports =
     JSCommonChartPaint_ChartRectangle: ChartRectangle,
     JSCommonChartPaint_ChartMultiText: ChartMultiText,
     JSCommonChartPaint_ChartMultiLine: ChartMultiLine,
+    JSCommonChartPaint_ChartBuySell: ChartBuySell,
     JSCommonChartPaint_ChartCorssCursor: ChartCorssCursor,
 };

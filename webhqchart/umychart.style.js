@@ -39,10 +39,11 @@ var BLACK_STYLE=
 
     Minute: 
     {
-      VolBarColor: "rgb(255,236,0)",
-      PriceColor: "rgb(25,180,231)",
-      AreaPriceColor:"rgba(63,158,255,.3)",
-      AvPriceColor: "rgb(255,236,0)",
+        VolBarColor: "rgb(255,236,0)",
+        PriceColor: "rgb(25,180,231)",
+        AreaPriceColor:"rgba(63,158,255,.3)",
+        AvPriceColor: "rgb(255,236,0)",
+        PositionColor:'rgb(218,165,32)', 
     },
 
 
@@ -60,6 +61,16 @@ var BLACK_STYLE=
     FrameSplitTextColor: "rgb(101,104,112)",     //刻度文字颜色
     FrameSplitTextFont: 12*GetDevicePixelRatio() +"px 微软雅黑",        //坐标刻度文字字体
     FrameTitleBGColor: "rgb(0,0,0)",      //标题栏背景色
+
+    Frame:{ XBottomOffset:1*GetDevicePixelRatio() },   //X轴文字向下偏移
+
+    FrameLatestPrice : {
+        TextColor:'rgb(255,255,255)',   //最新价格文字颜色
+        UpBarColor:"rgb(238,21,21)",    //上涨
+        DownBarColor:"rgb(25,158,0)",   //下跌
+        UnchagneBarColor:"rgb(190,190,190)",   //平盘
+        BGAlpha:0.6
+    },
 
     CorssCursorBGColor: "rgb(43,54,69)",            //十字光标背景
     CorssCursorTextColor: "rgb(255,255,255)",

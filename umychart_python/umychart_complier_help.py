@@ -1,4 +1,10 @@
-# 开源项目 https://github.com/jones2000/HQChart
+#   Copyright (c) 2018 jones
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   开源项目 https://github.com/jones2000/HQChart
+#
+#   jones_2000@163.com
 
 import sys
 import math
@@ -130,7 +136,7 @@ class JSComplierHelper:
         for lineItem in lineData :
             result[lineItem.ID]=lineItem.Value
 
-        if thridData.ID==data.length-1:   # 最后一组数据
+        if thridData.ID==len(data)-1:   # 最后一组数据
             # 最后2个点的数据连成线
             lineCache=Variant()
             lineCache.Start, lineCache.End = Variant(), Variant()

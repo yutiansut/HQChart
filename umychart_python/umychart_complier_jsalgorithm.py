@@ -1,4 +1,11 @@
-# 开源项目 https://github.com/jones2000/HQChart
+#   Copyright (c) 2018 jones
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   开源项目 https://github.com/jones2000/HQChart
+#
+#   jones_2000@163.com
+
 
 import sys
 import math
@@ -564,6 +571,7 @@ class JSAlgorithm() :
         result=[]
         if JSAlgorithm.IsNumber(n) :
             count=len(data)
+            n=int(n)
             if count<=0 :
                 return result
             if n>=count :
@@ -576,18 +584,21 @@ class JSAlgorithm() :
 
         else :   # n 为数组的情况
             nCount=len(n)
+            count=len(data)
+            result=[None]*count
             for i in range(len(data)) :
                 result[i]=None
                 if i>=nCount :
                     continue
 
                 value=n[i]
-                if value>0 and value<=i :
-                    result[i]=data[i-value]
-                elif i : 
-                    result[i]=result[i-1]
-                else :
-                    result[i]=data[i]
+                if (JSAlgorithm.IsNumber(value)) :
+                    if value>0 and value<=i :
+                        result[i]=data[i-value]
+                    elif i : 
+                        result[i]=result[i-1]
+                    else :
+                        result[i]=data[i]
 
         return result
 
@@ -1568,7 +1579,7 @@ class JSAlgorithm() :
         for i in range(dataLen) :
             if data[i] :
                 result[i]=1
-                for j in range(j<n) :
+                for j in range(n) :
                     if j+i+1>=dataLen :
                         break
                     result[j+i+1]=0
@@ -1814,7 +1825,7 @@ class JSAlgorithm() :
                     continue
 
                 if data[i]>data2 :
-                    day+=1
+                    days+=1
                 else :
                     days=0
 
@@ -2226,7 +2237,7 @@ class JSAlgorithm() :
         result[n-1]=low
         nextSar=low
         sip=stockData.Data[0].High
-        af=exValue/100
+        af=step/100
         for i in range(n,dataLen) :
             ysip=sip
             item=stockData.Data[i]
@@ -2557,8 +2568,8 @@ class JSAlgorithm() :
                             lastData.ID, lastData.Value =i, item
 
         # 计算最后1组数据
-        thridData.ID=data.length-1,
-        thridData.Value=data[data.length-1], 
+        thridData.ID=len(data)-1
+        thridData.Value=data[len(data)-1]
         thridData.Up=not secondData.Up
         JSComplierHelper.CalculateZIGLine(firstData,secondData,thridData,data,result)
        
@@ -2571,10 +2582,10 @@ class JSAlgorithm() :
     def TROUGHBARS(self,data,n,n2) :
         zigData=self.ZIG(data,n)  # 计算ZIG
         zigDataLen=len(zigData)
-        dataLen=len(data)
+        dataLen=len(zigData)
         result=JSComplierHelper.CreateArray(dataLen)
 
-        for i in range(len(zigDataLen)) :
+        for i in range(zigDataLen) :
             if JSComplierHelper.IsNumber(zigData[i]) :
                 break
 
@@ -2612,10 +2623,10 @@ class JSAlgorithm() :
     def PEAKBARS(self, data,n,n2) :
         zigData=self.ZIG(data,n)   # 计算ZIG
         zigDataLen=len(zigData)
-        dataLen=len(data)
+        dataLen=len(zigData)
         result=JSComplierHelper.CreateArray(dataLen)
 
-        for i in range(len(zigDataLen)) :
+        for i in range(zigDataLen) :
             if JSComplierHelper.IsNumber(zigData[i]) :
                 break
 
@@ -2654,7 +2665,7 @@ class JSAlgorithm() :
         elif name=='MIN':
             return self.MIN(args[0], args[1])
         elif name=='REF':
-            return self.REF(args[0], int(args[1]))
+            return self.REF(args[0], args[1])
         elif name=='ABS':
             return self.ABS(args[0])
         elif name=='MA':
@@ -2704,7 +2715,7 @@ class JSAlgorithm() :
         elif name=='EXISTR':
             return self.EXISTR(args[0],int(args[1]),int(args[2]))
         elif name=='FILTER':
-            return self.FILTER(args[0],args[1])
+            return self.FILTER(args[0],int(args[1]))
         elif name=='TFILTER':
             return self.TFILTER(args[0],args[1],int(args[2]))
         elif name=='SLOPE':

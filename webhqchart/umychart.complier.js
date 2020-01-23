@@ -10,6 +10,16 @@
    分析家语法编译执行器 (H5版本)
 */
 
+//日志输出类
+if (!JSConsole)
+{
+    var JSConsole=
+    { 
+        Chart:{ Log:console.log },      //图形日志
+        Complier:{ Log:console.log }    //编译器日志
+    };
+}
+
 //API默认地址
 var g_JSComplierResource=
 {
@@ -757,6 +767,7 @@ var Syntax = {
 function Node()
 {
     this.IsNeedIndexData=false;         //是否需要大盘数据
+    this.IsNeedLatestIndexData=false;   //是否需要下载最新大盘数据
     this.IsNeedLatestData=false;        //是否需要最新的个股行情数据
     this.IsNeedSymbolData=false;        //是否需要下载股票数据
     this.IsNeedSymbolDayData=false;     //跨周期是否下载日线数据
@@ -778,6 +789,7 @@ function Node()
         if (this.IsNeedIndexData) jobs.push({ID:JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_INDEX_DATA});
         if (this.IsNeedLatestData) jobs.push({ID:JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_SYMBOL_LATEST_DATA});
         if (this.IsNeedSymbolDayData) jobs.push({ID:JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_SYMBOL_DAY_DATA});
+        if (this.IsNeedLatestIndexData) jobs.push({ID:JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_LATEST_INDEX_DATA});
 
         //涨跌停家数统计
         for(var blockSymbol of this.IsNeedBlockIncreaseData)    
@@ -878,6 +890,12 @@ function Node()
         {
             if (!this.IsNeedFinanceData.has(JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_EXCHANGE_DATA))
                 this.IsNeedFinanceData.add(JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_EXCHANGE_DATA);
+        }
+
+        if (varName=='FROMOPEN')
+        {
+            this.IsNeedLatestIndexData=true;
+            return;
         }
 
         if (g_JSComplierResource.IsCustomVariant(varName)) //自定义函数( 不过滤了, 调一次就写一次)
@@ -2674,7 +2692,7 @@ function JSAlgorithm(errorHandler,symbolData)
             var preValue = data[i - (dayCount-1)];
             var sum = 0;
             var count = 0;
-            for (var j = dayCount-1; j >= 0; ++j)
+            for (var j = dayCount-1; j >= 0; --j)
             {
                var value = data[i-j];
                if (!this.IsNumber(value))
@@ -3918,7 +3936,7 @@ function JSAlgorithm(errorHandler,symbolData)
             result[i]=null;
             if (i+1<zigData.length && i-1>=0 &&  zigData[i]<zigData[i-1] && zigData[i]<zigData[i+1]) //波谷
             {
-                console.log('[TROUGHBARS] i',i,zigData[i]);
+                JSConsole.Complier.Log('[TROUGHBARS] i',i,zigData[i]);
                 ++j;
                 trough[j]=i;
                 if (j+1==n2)
@@ -3975,7 +3993,7 @@ function JSAlgorithm(errorHandler,symbolData)
             result[i]=null;
             if (i+1<zigData.length && i-1>=0 &&  zigData[i]>zigData[i-1] && zigData[i]>zigData[i+1]) //波峰
             {
-                console.log('[TROUGHBARS] i',i,zigData[i]);
+                JSConsole.Complier.Log('[TROUGHBARS] i',i,zigData[i]);
                 ++j;
                 trough[j]=i;
                 if (j+1==n2)
@@ -4807,7 +4825,7 @@ function JSAlgorithm(errorHandler,symbolData)
         const SAR_LONG=0, SAR_SHORT=1;
         var position=SAR_LONG;
         result[n-1]=low;
-        var nextSar=low, sip=stockData.Data[0].High,af=exValue/100;
+        var nextSar=low, sip=stockData.Data[0].High,af=step/100;
         for(var i=n;i<stockData.Data.length;++i)
         {
             var ysip=sip;
@@ -5020,45 +5038,17 @@ function JSAlgorithm(errorHandler,symbolData)
         return result;
     }
 
+
+    
+
     ////////////////////////////////////////////////////////////////////////
     //  跨周期函数COVER_C(), COVER_O(), COVER_H(), COVER_L(), COVER_A(), COVER_V()
-    this.CoverPeriod=function(name, periodName)
+    this.CoverPeriod=function(name, periodName,n)
     {
-        const PERIOD_LIST=
-        [
-            {Name:'MIN1', Period:4, Order:1},
-            {Name:'MIN5', Period:5, Order:2},
-            {Name:'MIN15', Period:6, Order:3},
-            {Name:'MIN30', Period:7, Order:4},
-            {Name:'MIN60', Period:8, Order:5},
-
-            {Name:'DAY', Period:0, Order:1000},
-            {Name:'WEEK', Period:1, Order:1001},
-            {Name:'MONTH', Period:2, Order:1002},
-            {Name:"YEAR", Period:3, Order:1003}
-        ];
-
-        var periodInfo;
-        for(var i in PERIOD_LIST)
-        {
-            if (PERIOD_LIST[i].Name==periodName)
-            {
-                periodInfo=PERIOD_LIST[i];
-                break;
-            }
-        }
+        var periodInfo=this.GetPeriodInfo({Name:periodName});
         if (!periodInfo) return null;
 
-        var curPeriodInfo;
-        var currentPeriod=this.SymbolData.Data.Period;
-        for(var i in PERIOD_LIST)
-        {
-            if (PERIOD_LIST[i].Period==currentPeriod)
-            {
-                curPeriodInfo=PERIOD_LIST[i];
-                break;
-            }
-        }
+        var curPeriodInfo=this.GetPeriodInfo({PeriodID:this.SymbolData.Data.Period});
         if (!curPeriodInfo) return null;
 
         if (curPeriodInfo.Order>curPeriodInfo.Order) return null;   //只能小周期转大周期
@@ -5097,6 +5087,14 @@ function JSAlgorithm(errorHandler,symbolData)
             result.Data=data;
         }
 
+        if (IFrameSplitOperator.IsPlusNumber(n))
+        {
+            var refResult=new ChartData();
+            var data=result.GetRef(n);
+            refResult.Data=data;
+            result=refResult;
+        }
+
         switch(name)
         {
             case 'COVER_C':
@@ -5114,6 +5112,107 @@ function JSAlgorithm(errorHandler,symbolData)
             default:
                 return null;
         }
+    }
+
+    this.MOD=function(data, data2)
+    {
+        var result=[];
+        let isNumber=typeof(data)=='number';
+        let isNumber2=typeof(data2)=='number';
+
+        //单数值
+        if (isNumber && isNumber2) 
+        {
+            return JSAlgorithm.MOD(data,data2);
+        }
+        else if (!isNumber && !isNumber2) //都是数组相加
+        {
+            let count=Math.max(data.length, data2.length);
+            for(let i=0;i<count;++i)
+            {
+                result[i]=null; //初始化
+
+                if (i<data.length && i<data2.length)
+                {
+                    if ( this.IsNumber(data[i]) && this.IsNumber(data2[i]) ) result[i]=JSAlgorithm.MOD(data[i],data2[i]);
+                }
+            }
+
+            return result;
+        }
+        else if (isNumber && !isNumber2)  //单数字 数组
+        {
+            for(var i in data2)
+            {
+                result[i]=null;
+                if (this.IsNumber(data) && this.IsNumber(data2[i])) result[i]=JSAlgorithm.MOD(data,data2[i]);
+            }
+
+            return result;
+        }
+        else if (!isNumber && isNumber2)  //数组 单数字
+        {
+            for(var i in data)
+            {
+                result[i]=null;
+                if (this.IsNumber(data[i]) && this.IsNumber(data2)) result[i]=JSAlgorithm.MOD(data[i],data2);
+            }
+
+            return result;
+        }
+
+        return result;
+    }
+
+    this.POW=function(data, n)
+    {
+        var result=[];
+        if (!IFrameSplitOperator.IsNumber(n)) return result;
+
+        let isNumber=typeof(data)=='number';
+       
+        if (isNumber) return Math.pow(data,n);
+
+        for(var i in data)
+        {
+            var item=data[i];
+            if (IFrameSplitOperator.IsNumber(item)) result[i]=Math.pow(item,n);
+            else result[i]=null;
+        }
+        
+        return result;
+    }
+
+    this.CEILING=function(data)
+    {
+        let isNumber=typeof(data)=='number';
+        if (isNumber) return parseInt(data);
+
+        var result=[];
+        for(var i in data)
+        {
+            var item=data[i];
+            if (IFrameSplitOperator.IsNumber(item)) result[i]=parseInt(item);
+            else result[i]=null;
+        }
+
+        return result;
+    }
+
+    this.FLOOR=function(data)
+    {
+        let isNumber=typeof(data)=='number';
+        if (isNumber) return parseInt((data-1));
+
+        var result=[];
+        for(var i in data)
+        {
+            var item=data[i];
+            if (IFrameSplitOperator.IsNumber(item)) result[i]=parseInt((item-1));
+            else result[i]=null;
+        }
+
+        return result;
     }
 
     //函数调用
@@ -5254,7 +5353,16 @@ function JSAlgorithm(errorHandler,symbolData)
             case 'COVER_L':
             case 'COVER_A':
             case 'COVER_V':
+                if (args.length==2) return this.CoverPeriod(name,args[0],args[1]);
                 return this.CoverPeriod(name,args[0]);
+            case 'MOD':
+                return this.MOD(args[0],args[1]);
+            case 'POW':
+                return this.POW(args[0],args[1]);
+            case 'CEILING':
+                return this.CEILING(args[0]);
+            case 'FLOOR':
+                return this.FLOOR(args[0]);
             //三角函数
             case 'ATAN':
                 return this.Trigonometric(args[0],Math.atan);
@@ -5303,6 +5411,48 @@ function JSAlgorithm(errorHandler,symbolData)
     }
 }
 
+
+JSAlgorithm.prototype.GetPeriodInfo=function(obj)    //{Name:周期名字  PeriodID:周期ID}
+{
+    const PERIOD_LIST=
+    [
+        {Name:'MIN1', Period:4, Order:1},
+        {Name:'MIN5', Period:5, Order:2},
+        {Name:'MIN15', Period:6, Order:3},
+        {Name:'MIN30', Period:7, Order:4},
+        {Name:'MIN60', Period:8, Order:5},
+
+        {Name:'DAY', Period:0, Order:1000},
+        {Name:'WEEK', Period:1, Order:1001},
+        {Name:'MONTH', Period:2, Order:1002},
+        {Name:"YEAR", Period:3, Order:1003}
+    ];
+
+    if (obj.Name)
+    {
+        for(var i in PERIOD_LIST)
+        {
+            if (obj.Name && PERIOD_LIST[i].Name==obj.Name) 
+                return PERIOD_LIST[i];
+        }
+
+        return null;
+    }
+
+    if (IFrameSplitOperator.IsNumber(obj.PeriodID))
+    {
+        for(var i in PERIOD_LIST)
+        {
+            if (PERIOD_LIST[i].Period==obj.PeriodID)
+                return PERIOD_LIST[i];
+        }
+
+        return null;
+    }
+
+    return null;
+}
+
 //是否有是有效的数字
 JSAlgorithm.prototype.IsNumber=function(value)
 {
@@ -5320,6 +5470,31 @@ JSAlgorithm.prototype.IsDivideNumber=function(value)
     if (value==0) return false;
 
     return true;
+}
+
+//取模
+JSAlgorithm.MOD=function(number,divisor)
+{
+    if( (number < 0 && divisor < 0) || (number >=0 && divisor >= 0))     //同号
+    {   
+        if(parseInt(number) == number && parseInt(divisor) == divisor)  //全为整数
+        {        
+            return number%divisor;
+        }
+        else  //被除数-(整商×除数)之后在第一位小数位进行四舍五入
+        {
+            var value = parseFloat((number - (Math.floor(number/divisor) * divisor)).toFixed(1));
+            return value;
+        }
+    }
+    else    //异号
+    {   
+        var absNumber = Math.abs(number);        //绝对值
+        var absDivisor = Math.abs(divisor);      //绝对值
+        var value = Math.abs(Math.abs(divisor) * (Math.floor(absNumber/absDivisor) + 1) - Math.abs(number));
+        if(divisor < 0) value = -value
+        return value;
+    }     
 }
 
 /*
@@ -6112,6 +6287,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.LatestData;            //最新行情
     this.IndexData;             //大盘指数
+    this.LatestIndexData;       //最新大盘数据
     this.FinanceData=new Map(); //财务数据
     this.MarginData=new Map();  //融资融券
     this.HKToSHSZData=new Map();    //北上资金
@@ -6155,7 +6331,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvError=function(request)
     {
-        console.log('[JSSymbolData::RecvError] ajax error.',request.status);
+        JSConsole.Complier.Log('[JSSymbolData::RecvError] ajax error.',request.status);
         throw {FunctionName:'RecvError', Request:request};
     }
 
@@ -6217,7 +6393,7 @@ function JSSymbolData(ast,option,jsExecute)
             YClose:stock.yclose,Price:stock.price, Open:stock.open, High:stock.high, Low:stock.low, Vol:stock.vol, Amount:stock.amount, 
             Increase:stock.increase, Exchangerate:stock.exchangerate, Amplitude:stock.amplitude};
 
-        console.log('[JSSymbolData::RecvLatestData]', this.LatestData);
+        JSConsole.Complier.Log('[JSSymbolData::RecvLatestData]', this.LatestData);
     }
 
     this.GetLatestCacheData=function(dataname)
@@ -6250,6 +6426,91 @@ function JSSymbolData(ast,option,jsExecute)
                 return null;
         }
     }
+
+    this.GetLatestIndexData=function()
+    {
+        if (this.LatestIndexData) return this.Execute.RunNextJob();
+
+        var self=this;
+
+        if (this.NetworkFilter)
+        {
+            var obj=
+            {
+                Name:'JSSymbolData::GetLatestIndexData', //类名:: 函数
+                Explain:'最新大盘数据',
+                Request:{ Url:self.RealtimeApiUrl,  Type:'POST' ,
+                    Data: { symbol:['000001.sh'], field: ["name","symbol","yclose","open","price","high","low","vol","amount","date","time","increase","amplitude"] } }, 
+                Self:this,
+                PreventDefault:false
+            };
+            this.NetworkFilter(obj, function(data) 
+            { 
+                self.RecvLatestIndexData(data);
+                self.Execute.RunNextJob();
+            });
+
+            if (obj.PreventDefault==true) return;   //已被上层替换,不调用默认的网络请求
+        }
+
+        JSNetwork.HttpRequest({
+            url: self.RealtimeApiUrl,
+            data:
+            {
+                "field": ["name","symbol","yclose","open","price","high","low","vol","amount","date","time","increase","amplitude"],
+                "symbol": ['000001.sh']
+            },
+            type:"post",
+            dataType: "json",
+            async:true, 
+            success: function (recvData)
+            {
+                self.RecvLatestIndexData(recvData);
+                self.Execute.RunNextJob();
+            },
+            error: function(request)
+            {
+                self.RecvError(request);
+            }
+        });
+    }
+
+    this.RecvLatestIndexData=function(data)
+    {
+        if (!data.stock || data.stock.length!=1) return;
+
+        let stock=data.stock[0];
+        this.LatestIndexData={ Symbol:stock.symbol, Name:stock.name, Date:stock.date, Time:stock.time,
+            YClose:stock.yclose,Price:stock.price, Open:stock.open, High:stock.high, Low:stock.low, Vol:stock.vol, Amount:stock.amount, 
+            Increase:stock.increase, Amplitude:stock.amplitude};
+
+        JSConsole.Complier.Log('[JSSymbolData::RecvLatestIndexData]', this.LatestIndexData);
+    }
+
+    this.GetLatestIndexCacheData=function(dataname)
+    {
+        if (!this.LatestIndexData) return  null;
+
+        switch(dataname)
+        {
+            case 'FROMOPEN':
+                {
+                    var value=parseInt(this.LatestIndexData.Time/100);
+                    var time=parseInt(value/100)*60+(value%100);    //转化为分钟个数
+                    var index=0;
+                    if(time <= 9 * 60 + 25) index=0;
+                    else if(time < 9 * 60 + 30) index=1;
+                    else if(time <= 11 * 60 + 30) index=(time - (9 * 60 + 30) + 1);
+                    else if(time < 13 * 60) index=121;
+                    else if(time <= 15 * 60) index=(122 + time - 13 * 60);
+                    else index=242;
+                    return index;
+                }
+            default:
+                return null;
+        }
+    }
+    
 
     this.GetVolRateData=function(job,node)
     {
@@ -6287,7 +6548,7 @@ function JSSymbolData(ast,option,jsExecute)
         var item={AvgVol5:avgVol5, Date:date};
         this.ExtendData.set(key,item);
 
-        console.log('[JSSymbolData::RecvVolRateData]', item);
+        JSConsole.Complier.Log('[JSSymbolData::RecvVolRateData]', item);
     }
 
     this.GetVolRateCacheData=function(node)
@@ -6516,7 +6777,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvIndexHistroyData=function(data)
     {
-        console.log('[JSSymbolData::RecvIndexHistroyData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvIndexHistroyData] recv data' , data);
 
         let hisData=this.JsonDataToHistoryData(data);
         this.IndexData=new ChartData();
@@ -6535,7 +6796,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvIndexMinuteHistroyData=function(data)
     {
-        console.log('[JSSymbolData::RecvIndexMinuteHistroyData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvIndexMinuteHistroyData] recv data' , data);
 
         let hisData=this.JsonDataToMinuteHistoryData(data);
         this.IndexData=new ChartData();
@@ -6588,7 +6849,7 @@ function JSSymbolData(ast,option,jsExecute)
         if (this.DataType===HQ_DATA_TYPE.MINUTE_ID || this.DataType===HQ_DATA_TYPE.MULTIDAY_MINUTE_ID)  //走势图数据
         {
             var apiUrl=g_JSComplierResource.CacheDomain+'/cache/analyze/increaseanalyze/'+symbol+'.json';
-            console.log('[JSSymbolData::GetIndexIncreaseData] minute Get url=' , apiUrl);
+            JSConsole.Complier.Log('[JSSymbolData::GetIndexIncreaseData] minute Get url=' , apiUrl);
             JSNetwork.HttpRequest({
                 url: apiUrl,
                 type:"get",
@@ -6607,7 +6868,7 @@ function JSSymbolData(ast,option,jsExecute)
         }
         else if (this.DataType===HQ_DATA_TYPE.KLINE_ID && this.Period===0) //K线图 日线
         {
-            console.log('[JSSymbolData::GetIndexIncreaseData] K day Get url=' , self.KLineApiUrl);
+            JSConsole.Complier.Log('[JSSymbolData::GetIndexIncreaseData] K day Get url=' , self.KLineApiUrl);
             JSNetwork.HttpRequest({
                 url: self.KLineApiUrl,
                 data:
@@ -6634,7 +6895,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvHistoryIncreaseData=function(data,key)
     {
-        console.log('[JSSymbolData::RecvHistoryIncreaseData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvHistoryIncreaseData] recv data' , data);
 
         var upData=[],downData=[];
         for(var i in data.data)
@@ -6667,7 +6928,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvMinuteIncreaseData=function(data,key)
     {
-        console.log('[JSSymbolData::RecvMinuteIncreaseData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvMinuteIncreaseData] recv data' , data);
         if (!data.minute) return;
         var minuteData=data.minute;
         if (!minuteData.time || !minuteData.up || !minuteData.down) return;
@@ -6833,7 +7094,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvHistroyData=function(data)
     {
-        console.log('[JSSymbolData::RecvHistroyData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvHistroyData] recv data' , data);
 
         let hisData=this.JsonDataToHistoryData(data);
         this.Data=new ChartData();
@@ -6861,7 +7122,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvMinuteHistroyData=function(data)
     {
-        console.log('[JSSymbolData::RecvMinuteHistroyData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvMinuteHistroyData] recv data' , data);
 
         let hisData=this.JsonDataToMinuteHistoryData(data);
         this.Data=new ChartData();
@@ -6883,7 +7144,7 @@ function JSSymbolData(ast,option,jsExecute)
     //最新的分钟数据走势图
     this.RecvMinuteData=function(data)
     {
-        console.log('[JSSymbolData::RecvMinuteData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvMinuteData] recv data' , data);
 
         var aryMinuteData=this.JsonDataToMinuteData(data);
         this.Data=new ChartData();
@@ -6962,7 +7223,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvSymbolDayData=function(data)
     {
-        console.log('[JSSymbolData::RecvSymbolDayData] recv data' , data);
+        JSConsole.Complier.Log('[JSSymbolData::RecvSymbolDayData] recv data' , data);
 
         let hisData=this.JsonDataToHistoryData(data);
         var dayData=new ChartData();
@@ -7056,7 +7317,7 @@ function JSSymbolData(ast,option,jsExecute)
             aryData[i]=item;
         }
 
-        console.log('[JSSymbolData::RecvCompanyReleaseDate] jobID=', jobID, aryData)
+        JSConsole.Complier.Log('[JSSymbolData::RecvCompanyReleaseDate] jobID=', jobID, aryData)
 
         var bindData=new ChartData();
         bindData.Data=aryData;
@@ -7077,7 +7338,7 @@ function JSSymbolData(ast,option,jsExecute)
     {
         if (this.FinanceData.has(jobID)) return this.Execute.RunNextJob();
 
-        console.log('[JSSymbolData::GetFinanceData] jobID=', jobID);
+        JSConsole.Complier.Log('[JSSymbolData::GetFinanceData] jobID=', jobID);
         var self=this;
         let fieldList=["name","date","symbol"];
         
@@ -7190,7 +7451,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvStockDayData=function(recvData,jobID)
     {
-        //console.log(recvData);
+        //JSConsole.Complier.Log(recvData);
         if (!recvData.stock || recvData.stock.length!=1) return;
 
         let stock=recvData.stock[0];
@@ -7347,7 +7608,7 @@ function JSSymbolData(ast,option,jsExecute)
 
         
 
-        //console.log('[JSSymbolData::RecvStockDayData] jobID=' + jobID, aryFixedData)
+        //JSConsole.Complier.Log('[JSSymbolData::RecvStockDayData] jobID=' + jobID, aryFixedData)
 
         var bindData=new ChartData();
         bindData.Data=aryFixedData;
@@ -7434,7 +7695,7 @@ function JSSymbolData(ast,option,jsExecute)
     {
         if (this.MarginData.has(jobID)) return this.Execute.RunNextJob();
 
-        console.log('[JSSymbolData::GetMarginData] jobID=', jobID);
+        JSConsole.Complier.Log('[JSSymbolData::GetMarginData] jobID=', jobID);
         var self=this;
         let fieldList=["name","date","symbol"];
         
@@ -7484,7 +7745,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvMarginData=function(data,jobID)
     {
-        console.log(data);
+        JSConsole.Complier.Log(data);
         if (!data.stock || data.stock.length!=1) return;
 
         let stock=data.stock[0];
@@ -7627,7 +7888,7 @@ function JSSymbolData(ast,option,jsExecute)
 
         url=this.HKToSHSZApiUrl[dataType];
         var self=this;
-        console.log(`[JSSymbolData::GetHKToSHSZData] jobID=${jobID}, url=${url}, dataType=${dataType}`);
+        JSConsole.Complier.Log(`[JSSymbolData::GetHKToSHSZData] jobID=${jobID}, url=${url}, dataType=${dataType}`);
 
         if (dataType===2)
         {
@@ -7915,7 +8176,7 @@ function JSSymbolData(ast,option,jsExecute)
 
     this.RecvNewsAnalysisDataError=function(request, textStatus,jobID)
     {
-        console.log('[JSSymbolData::RecvNewsAnalysisDataError] ajax error.',request.status);
+        JSConsole.Complier.Log('[JSSymbolData::RecvNewsAnalysisDataError] ajax error.',request.status);
 
         //没有新闻使用0数据填充
         var aryData=[];
@@ -7937,7 +8198,7 @@ function JSSymbolData(ast,option,jsExecute)
         if (!data.data || !data.date) return;
         if (data.data.length<=0 || data.data.length!=data.date.length) return;
         
-        console.log('[JSSymbolData::RecvNewsAnalysisData] jobID',jobID, data.update);
+        JSConsole.Complier.Log('[JSSymbolData::RecvNewsAnalysisData] jobID',jobID, data.update);
         if (jobID==JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_NEWS_ANALYSIS_HOLDERCHANGE|| jobID==JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_NEWS_ANALYSIS_HOLDERCHANGE2)
         {
             var aryData=[], aryData2=[];
@@ -7991,7 +8252,7 @@ function JSSymbolData(ast,option,jsExecute)
         var period=job.SF[1].Period;
         if (this.SectionFinanceData.has(sfKey)) return this.Execute.RunNextJob();
 
-        console.log(`[JSSymbolData::GetSectionFinanceData] ${period.Year}-${period.Quarter}`);
+        JSConsole.Complier.Log(`[JSSymbolData::GetSectionFinanceData] ${period.Year}-${period.Quarter}`);
         var fieldName='announcement'+period.Quarter;
         var self=this;
         var fieldList=["name","date","symbol", fieldName,'finance'+period.Quarter];
@@ -8628,6 +8889,7 @@ var JS_EXECUTE_JOB_ID=
     JOB_DOWNLOAD_VOLR_DATA:5,           //5日量比均量下载量比数据
     JOB_DOWNLOAD_GROUP_DATA:6,          //所属行业|地区|概念
     JOB_DOWNLOAD_SYMBOL_DAY_DATA:7,     //股票日线数据
+    JOB_DOWNLOAD_LATEST_INDEX_DATA:8,   //下载最新大盘数据
 
     //财务函数
     JOB_DOWNLOAD_TOTAL_EQUITY_DATA:100,          //总股本（万股）
@@ -8899,6 +9161,8 @@ function JSExecute(ast,option)
         ['INDEXA',null],['INDEXC',null],['INDEXH',null],['INDEXL',null],['INDEXO',null],['INDEXV',null],
         ['INDEXADV',null],['INDEXDEC',null],
 
+        ['FROMOPEN',null],  //已开盘有多长分钟
+
         ['CURRBARSCOUNT',null], //到最后交易日的周期数
         ['ISLASTBAR',null],     //判断是否为最后一个周期
 
@@ -8936,7 +9200,7 @@ function JSExecute(ast,option)
 
     this.Execute=function()
     {
-        console.log('[JSExecute::Execute] JobList', this.JobList);
+        JSConsole.Complier.Log('[JSExecute::Execute] JobList', this.JobList);
         this.OutVarTable=[];
         this.VarTable=new Map();
         this.RunNextJob();
@@ -8956,6 +9220,8 @@ function JSExecute(ast,option)
                 return this.SymbolData.GetSymbolDayData();
             case JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_INDEX_DATA:
                 return this.SymbolData.GetIndexData();
+            case JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_LATEST_INDEX_DATA:
+                return this.SymbolData.GetLatestIndexData();
             case JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_INDEX_INCREASE_DATA:
                 return this.SymbolData.GetIndexIncreaseData(jobItem);
             case JS_EXECUTE_JOB_ID.JOB_DOWNLOAD_SYMBOL_LATEST_DATA:
@@ -9089,6 +9355,8 @@ function JSExecute(ast,option)
                 return this.SymbolData.WEEK();
             case 'PERIOD':
                 return this.SymbolData.PERIOD();
+            case 'FROMOPEN':
+                return this.SymbolData.GetLatestIndexCacheData('FROMOPEN');
 
             case 'DRAWNULL':
                 return this.SymbolData.GetDrawNull();
@@ -9320,7 +9588,7 @@ function JSExecute(ast,option)
             }
         }
 
-        console.log('[JSExecute::Run]', this.VarTable);
+        JSConsole.Complier.Log('[JSExecute::Run]', this.VarTable);
 
         return this.OutVarTable;
     }
@@ -9330,21 +9598,21 @@ function JSExecute(ast,option)
         try
         {                       
             let data=this.RunAST();//执行脚本
-            console.log('[JSComplier.Run] execute finish', data);
+            JSConsole.Complier.Log('[JSComplier.Run] execute finish', data);
         
             if (this.UpdateUICallback) 
             {
-                console.log('[JSComplier.Run] invoke UpdateUICallback.');
+                JSConsole.Complier.Log('[JSComplier.Run] invoke UpdateUICallback.');
                 if (this.CallbackParam && this.CallbackParam.Self && this.CallbackParam.Self.ClassName==='ScriptIndexConsole') this.CallbackParam.JSExecute=this;
                 this.UpdateUICallback(data,this.CallbackParam);
             }
         }
         catch(error)
         {
-            console.log(error);
+            JSConsole.Complier.Log(error);
             if (error.Job)
             {
-                console.log('[JSComplier.Run] download job and reexectue', error.Job);
+                JSConsole.Complier.Log('[JSComplier.Run] download job and reexectue', error.Job);
                 this.JobList.push(error.Job);
                 this.JobList.push({ID:JS_EXECUTE_JOB_ID.JOB_RUN_SCRIPT});
                 this.Execute();
@@ -9406,7 +9674,7 @@ function JSExecute(ast,option)
             args.push(value);
         }
 
-        if (JS_EXECUTE_DEBUG_LOG) console.log('[JSExecute::VisitCallExpression]' , funcName, '(', args.toString() ,')');
+        if (JS_EXECUTE_DEBUG_LOG) JSConsole.Complier.Log('[JSExecute::VisitCallExpression]' , funcName, '(', args.toString() ,')');
 
         switch(funcName)
         {
@@ -9536,7 +9804,7 @@ function JSExecute(ast,option)
         else if (right.Type==Syntax.Identifier) //右值是变量
             value=this.ReadVariable(right.Name,right);
 
-        if (JS_EXECUTE_DEBUG_LOG) console.log('[JSExecute::VisitAssignmentExpression]' , varName, ' = ',value);
+        if (JS_EXECUTE_DEBUG_LOG) JSConsole.Complier.Log('[JSExecute::VisitAssignmentExpression]' , varName, ' = ',value);
         this.VarTable.set(varName,value);
     }
 
@@ -9566,7 +9834,7 @@ function JSExecute(ast,option)
                     let leftValue=this.GetNodeValue(value.Left);
                     let rightValue=this.GetNodeValue(value.Right);
 
-                    if (JS_EXECUTE_DEBUG_LOG) console.log('[JSExecute::VisitBinaryExpression] BinaryExpression',value , leftValue, rightValue);
+                    if (JS_EXECUTE_DEBUG_LOG) JSConsole.Complier.Log('[JSExecute::VisitBinaryExpression] BinaryExpression',value , leftValue, rightValue);
                     value.Out=null; //保存中间值
 
                     switch(value.Operator)
@@ -9605,14 +9873,14 @@ function JSExecute(ast,option)
                             break;
                     }
 
-                    if (JS_EXECUTE_DEBUG_LOG) console.log('[JSExecute::VisitBinaryExpression] BinaryExpression',value);
+                    if (JS_EXECUTE_DEBUG_LOG) JSConsole.Complier.Log('[JSExecute::VisitBinaryExpression] BinaryExpression',value);
                 }
                 else if (value.Type==Syntax.LogicalExpression)
                 {
                     let leftValue=this.GetNodeValue(value.Left);
                     let rightValue=this.GetNodeValue(value.Right);
 
-                    if (JS_EXECUTE_DEBUG_LOG) console.log('[JSExecute::VisitBinaryExpression] LogicalExpression',value , leftValue, rightValue);
+                    if (JS_EXECUTE_DEBUG_LOG) JSConsole.Complier.Log('[JSExecute::VisitBinaryExpression] LogicalExpression',value , leftValue, rightValue);
                     value.Out=null; //保存中间值
 
                     switch(value.Operator)
@@ -9627,7 +9895,7 @@ function JSExecute(ast,option)
                             break;
                     }
 
-                    if (JS_EXECUTE_DEBUG_LOG) console.log('[JSExecute::VisitBinaryExpression] LogicalExpression',value);
+                    if (JS_EXECUTE_DEBUG_LOG) JSConsole.Complier.Log('[JSExecute::VisitBinaryExpression] LogicalExpression',value);
                 }
                 
                 node=temp;
@@ -9697,7 +9965,7 @@ function JSComplier()
 //词法分析
 JSComplier.Tokenize=function(code)
 {
-    console.log('[JSComplier.Tokenize]', code);
+    JSConsole.Complier.Log('[JSComplier.Tokenize]', code);
     let tokenizer=new Tokenizer(code);
     let tokens=[];
     try
@@ -9721,7 +9989,7 @@ JSComplier.Tokenize=function(code)
 //语法解析 生成抽象语法树(Abstract Syntax Tree)
 JSComplier.Parse=function(code)
 {
-    console.log('[JSComplier.Parse]',code);
+    JSConsole.Complier.Log('[JSComplier.Parse]',code);
 
     let parser=new JSParser(code);
     parser.Initialize();
@@ -9754,17 +10022,17 @@ JSComplier.Execute=function(code,option,errorCallback)
     {
         try
         {
-            console.log('[JSComplier.Execute]',code,option);
+            JSConsole.Complier.Log('[JSComplier.Execute]',code,option);
 
-            console.log('[JSComplier.Execute] parser .....');
+            JSConsole.Complier.Log('[JSComplier.Execute] parser .....');
             let parser=new JSParser(code);
             parser.Initialize();
             let program=parser.ParseScript(); 
             
             let ast=program;
-            console.log('[JSComplier.Execute] parser finish.', ast);
+            JSConsole.Complier.Log('[JSComplier.Execute] parser finish.', ast);
 
-            console.log('[JSComplier.Execute] execute .....');
+            JSConsole.Complier.Log('[JSComplier.Execute] execute .....');
             let execute=new JSExecute(ast,option);
             execute.ErrorCallback=errorCallback;        //执行错误回调
             execute.JobList=parser.Node.GetDataJobList();
@@ -9775,7 +10043,7 @@ JSComplier.Execute=function(code,option,errorCallback)
 
         }catch(error)
         {
-            console.log(error);
+            JSConsole.Complier.Log(error);
 
             if (errorCallback) errorCallback(error);
         }
@@ -9783,7 +10051,7 @@ JSComplier.Execute=function(code,option,errorCallback)
 
     asyncExecute();
 
-    console.log('[JSComplier.Execute] async execute.');
+    JSConsole.Complier.Log('[JSComplier.Execute] async execute.');
 }
 
 
@@ -9854,6 +10122,8 @@ function ScriptIndex(name,script,args,option)
     this.LockFont=null;
     this.LockCount=20;
     this.LockMinWidth=null;
+    this.TitleFont=g_JSChartResource.TitleFont;     //标题字体
+    this.IsShortTitle=false;                        //是否显示指标参数
 
     if (option)
     {
@@ -9865,6 +10135,8 @@ function ScriptIndex(name,script,args,option)
         if (option.YSpecificMaxMin) this.YSpecificMaxMin=option.YSpecificMaxMin;
         if (option.YSplitScale) this.YSplitScale=option.YSplitScale;
         if (option.Condition) this.Condition=option.Condition;
+        if (option.TitleFont) this.TitleFont=option.TitleFont;
+        if (option.IsShortTitle) this.IsShortTitle=option.IsShortTitle;
     }
 
     if (option && option.Lock) 
@@ -9965,7 +10237,7 @@ function ScriptIndex(name,script,args,option)
     //是否符合限制条件
     this.IsMeetCondition=function(param,option)
     {
-        console.log('[ScriptIndex::IsMeetCondition] ', this.Condition);
+        JSConsole.Complier.Log('[ScriptIndex::IsMeetCondition] ', this.Condition);
         if (this.Condition.Period)      //周期是否满足
         {
             if (!this.IsMeetPeriodCondition(param,option)) return false;
@@ -10681,16 +10953,21 @@ function ScriptIndex(name,script,args,option)
 
         let titleIndex=windowIndex+1;
         hqChart.TitlePaint[titleIndex].Title=this.Name;
-        
-        let indexParam='';
-        for(let i in this.Arguments)
+
+        if (!this.IsShortTitle)
         {
-            let item=this.Arguments[i];
-            if (indexParam.length>0) indexParam+=',';
-            indexParam+=item.Value.toString();
+            let indexParam='';
+            for(let i in this.Arguments)
+            {
+                let item=this.Arguments[i];
+                if (indexParam.length>0) indexParam+=',';
+                indexParam+=item.Value.toString();
+            }
+
+            if (indexParam.length>0) hqChart.TitlePaint[titleIndex].Title=this.Name+'('+indexParam+')';
         }
 
-        if (indexParam.length>0) hqChart.TitlePaint[titleIndex].Title=this.Name+'('+indexParam+')';
+        if (this.TitleFont) hqChart.TitlePaint[titleIndex].Font=this.TitleFont;
 
         return true;
     }
@@ -11377,7 +11654,7 @@ function APIScriptIndex(name,script,args,option)
 
     this.ExecuteScript=function(hqChart,windowIndex,hisData)
     {
-        console.log('[APIScriptIndex::ExecuteScript] name, Arguments ', this.Name,this.Arguments );
+        JSConsole.Complier.Log('[APIScriptIndex::ExecuteScript] name, Arguments ', this.Name,this.Arguments );
 
         //数据类型
         let hqDataType=HQ_DATA_TYPE.KLINE_ID;   //默认K线
@@ -11450,7 +11727,7 @@ function APIScriptIndex(name,script,args,option)
 
     this.RecvAPIData=function(data,hqChart,windowIndex,hisData)
     {
-        console.log('[APIScriptIndex::RecvAPIData] recv data ', this.Name,data );
+        JSConsole.Complier.Log('[APIScriptIndex::RecvAPIData] recv data ', this.Name,data );
         if (data.code!=0) return;
 
         if (data.outdata && data.outdata.name) this.Name=data.outdata.name;
@@ -11468,7 +11745,7 @@ function APIScriptIndex(name,script,args,option)
         if (this.HQDataType==HQ_DATA_TYPE.KLINE_ID)
         {
             this.OutVar=this.FittingData(data.outdata,hqChart);
-            console.log('[APIScriptIndex::RecvAPIData] conver to OutVar ', this.OutVar);
+            JSConsole.Complier.Log('[APIScriptIndex::RecvAPIData] conver to OutVar ', this.OutVar);
         }
         else
         {
@@ -11789,6 +12066,13 @@ function LocalJsonDataIndex(name,args,option)
         for(i in outVar)
         {
             item=outVar[i];
+            JSConsole.Complier.Log('[LocalJsonDataIndex::FittingData] item', item);
+            if (item.Type!=0 && item.Type!=3)   //复杂的图形不支持
+            {
+                console.warn("[LocalJsonDataIndex::FittingData] can't support ", item.Name, item.Type);
+                continue; 
+            }
+            
             var indexData=[];
             outVarItem={Name:item.Name,Type:item.Type}
             for(j in item.Data)
@@ -11894,7 +12178,7 @@ function ScriptIndexConsole(obj)
 
         if (jsExec.SymbolData.DataType==HQ_DATA_TYPE.MULTIDAY_MINUTE_ID || jsExec.SymbolData.DataType==HQ_DATA_TYPE.MINUTE_ID) result.Time=jsExec.SymbolData.Data.GetTime();
         else if (jsExec.SymbolData.DataType==HQ_DATA_TYPE.KLINE_ID && ChartData.IsMinutePeriod(jsExec.SymbolData.Period,true)) result.Time=jsExec.SymbolData.Data.GetTime();
-        //console.log('[ScriptIndexConsole::RecvResultData] outVar ', outVar);
+        //JSConsole.Complier.Log('[ScriptIndexConsole::RecvResultData] outVar ', outVar);
         if (self.FinishCallback) self.FinishCallback(result, param.JSExecute);
     }
 }
@@ -11910,9 +12194,9 @@ var code1='VARHIGH:IF(VAR1<=REF(HH,-1),REF(H,BARSLAST(VAR1>=REF(HH,1))),DRAWNULL
 var code2='VAR1=((SMA(MAX((CLOSE - LC),0),3,1) / SMA(ABS((CLOSE - LC)),3,1)) * 100);';
 var code3='mm1=1-2*-9+20;';
 
-console.log(code1+code2)
+JSConsole.Complier.Log(code1+code2)
 var tokens=JSComplier.Tokenize(code1+code2);
 var ast=JSComplier.Parse(code2+code1);
 
-console.log(ast);
+JSConsole.Complier.Log(ast);
 */
