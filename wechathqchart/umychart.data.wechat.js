@@ -27,6 +27,8 @@ function HistoryData()
     this.Vol;
     this.Amount;
     this.Time;  //分钟 HHMM / 秒HHMMSS
+    this.FlowCapital = 0;   //流通股本
+    this.Position = null;   //持仓量
 
     //指数才有的数据
     this.Stop;  //停牌家数
@@ -48,6 +50,8 @@ HistoryData.Copy=function(data)
     newData.Vol=data.Vol;
     newData.Amount=data.Amount;
     newData.Time=data.Time;
+    newData.FlowCapital = data.FlowCapital;
+    newData.Position = data.Position;
 
     //指数才有的数据
     newData.Stop = data.Stop;
@@ -92,6 +96,9 @@ HistoryData.CopyRight=function(data,seed)
     newData.Vol=data.Vol;
     newData.Amount=data.Amount;
 
+    newData.FlowCapital = data.FlowCapital;
+    newData.Position = data.Position;
+
     return newData;
 }
 
@@ -110,6 +117,7 @@ function MinuteData()
     this.AvPrice;
     this.Date;
     this.Time;
+    this.Position = null;  //持仓量
 }
 
 //单指标数据
@@ -119,6 +127,15 @@ function SingleData()
     this.Value; //数据
 }
 
+
+function DataPlus() { };            //外部数据计算方法接口
+DataPlus.GetMinutePeriodData = null;
+/*
+DataPlus.GetMinutePeriodData=function(period,data,self)
+{
+
+}
+*/
 
 //////////////////////////////////////////////////////////////////////
 // 数据集合
@@ -273,6 +290,17 @@ function ChartData()
         return result;
     }
 
+    this.GetPosition = function () 
+    {
+        var result = new Array();
+        for (var i in this.Data) 
+        {
+            result[i] = this.Data[i].Position;
+        }
+
+        return result;
+    }
+
     this.GetDate = function () 
     {
         var result = [];
@@ -394,6 +422,8 @@ function ChartData()
 
     this.GetMinutePeriodData=function(period)
     {
+        if (DataPlus.GetMinutePeriodData) return DataPlus.GetMinutePeriodData(period, this.Data, this);
+
         if (period > CUSTOM_MINUTE_PERIOD_START && period <= CUSTOM_MINUTE_PERIOD_END) 
             return this.GetMinuteCustomPeriodData(period - CUSTOM_MINUTE_PERIOD_START);
 
@@ -458,7 +488,9 @@ function ChartData()
                     newData.YClose=minData.YClose;
                     newData.Close=minData.Close;
                     newData.Vol=minData.Vol;
-                    newData.Amount=minData.Amount;      
+                    newData.Amount=minData.Amount;   
+                    newData.Position = minData.Position;   
+                    newData.FlowCapital = minData.FlowCapital;  
                 }
                 else
                 {
@@ -469,6 +501,8 @@ function ChartData()
                     newData.Close=minData.Close;
                     newData.Vol+=minData.Vol;
                     newData.Amount+=minData.Amount;
+                    newData.Position = minData.Position;
+                    newData.FlowCapital = minData.FlowCapital;  
                 }
 
                 if (i + 1 < this.Data.length) //判断下一个数据是否是不同日期的
@@ -519,6 +553,7 @@ function ChartData()
                     newData.Vol = minData.Vol;
                     newData.Amount = minData.Amount;
                     newData.FlowCapital = minData.FlowCapital;
+                    newData.Position = minData.Position; 
                 }
                 else 
                 {
@@ -528,6 +563,7 @@ function ChartData()
                     newData.Vol += minData.Vol;
                     newData.Amount += minData.Amount;
                     newData.FlowCapital = minData.FlowCapital;
+                    newData.Position = minData.Position;
                 }
             }
         }
@@ -617,6 +653,8 @@ function ChartData()
                 newData.Close=dayData.Close;
                 newData.Vol=dayData.Vol;
                 newData.Amount=dayData.Amount;
+                newData.FlowCapital = dayData.FlowCapital;
+                newData.Position = dayData.Position; 
             }
             else
             {
@@ -632,6 +670,8 @@ function ChartData()
                     newData.Close=dayData.Close;
                     newData.Vol=dayData.Vol;
                     newData.Amount=dayData.Amount;
+                    newData.FlowCapital = dayData.FlowCapital;
+                    newData.Position = dayData.Position; 
                 }
                 else
                 {
@@ -642,6 +682,8 @@ function ChartData()
                     newData.Vol+=dayData.Vol;
                     newData.Amount+=dayData.Amount;
                     newData.Date=dayData.Date;
+                    newData.FlowCapital = dayData.FlowCapital;
+                    newData.Position = dayData.Position;
                 }
             }
         }
@@ -682,6 +724,7 @@ function ChartData()
                     newData.Vol = dayData.Vol;
                     newData.Amount = dayData.Amount;
                     newData.FlowCapital = dayData.FlowCapital;
+                    newData.Position = dayData.Position;  
                 }
                 else 
                 {
@@ -690,6 +733,7 @@ function ChartData()
                     newData.Close = dayData.Close;
                     newData.Vol += dayData.Vol;
                     newData.Amount += dayData.Amount;
+                    newData.Position = dayData.Position;
                     newData.FlowCapital = dayData.FlowCapital;
                 }
             }
@@ -1175,7 +1219,15 @@ function ChartData()
         for (var i = 0; i < data.length; ++i)  //查找比原始数据起始位置大的数据位置
         {
             var item = data[i];
-            if (item.Date >= sourceFirstItem.Date && item.Time >= sourceFirstItem.Time) {
+            if (item.Date >sourceFirstItem.Date)
+            {
+                firstItemID = i;
+                firstItem = item;
+                break;
+            }
+
+            if (item.Date == sourceFirstItem.Date && item.Time >= sourceFirstItem.Time) 
+            {
                 firstItemID = i;
                 firstItem = item;
                 break;
@@ -1377,6 +1429,7 @@ module.exports =
         SingleData: SingleData,
         MinuteData: MinuteData,
         Rect: Rect,
+        DataPlus: DataPlus,
     },
 
     //单个类导出
@@ -1391,4 +1444,5 @@ module.exports =
     JSCommon_CUSTOM_SECOND_PERIOD_START: CUSTOM_SECOND_PERIOD_START,
     JSCommon_CUSTOM_SECOND_PERIOD_END: CUSTOM_SECOND_PERIOD_END,
     JSCommon_Rect: Rect,
+    JSCommon_DataPlus: DataPlus,
 };

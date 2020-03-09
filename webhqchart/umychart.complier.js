@@ -860,7 +860,7 @@ function Node()
             return;
         }
 
-        let setSymbolDataName=new Set(['CLOSE','C','VOL','V','OPEN','O','HIGH','H','LOW','L','AMOUNT']);
+        let setSymbolDataName=new Set(['CLOSE','C','VOL','V','OPEN','O','HIGH','H','LOW','L','AMOUNT','AMO','VOLINSTK']);
         if (setSymbolDataName.has(varName)) 
         {
             this.IsNeedSymbolData=true;
@@ -7186,7 +7186,10 @@ function JSSymbolData(ast,option,jsExecute)
             case 'L':
                 return this.Data.GetLow();
             case 'AMOUNT':
+            case 'AMO':
                 return this.Data.GetAmount();
+            case 'VOLINSTK':
+                return this.Data.GetPosition();
         }
     }
 
@@ -9152,7 +9155,9 @@ function JSExecute(ast,option)
     this.ConstVarTable=new Map([
         //个股数据
         ['CLOSE',null],['VOL',null],['OPEN',null],['HIGH',null],['LOW',null],['AMOUNT',null],
-        ['C',null],['V',null],['O',null],['H',null],['L',null],['VOLR',null],
+        ['C',null],['V',null],['O',null],['H',null],['L',null],['AMO',null], 
+        ['VOLR',null],      //量比
+        ['VOLINSTK',null],  //持仓量
 
         //日期类
         ['DATE',null],['YEAR',null],['MONTH',null],['PERIOD', null],['WEEK',null],
@@ -9309,6 +9314,8 @@ function JSExecute(ast,option)
             case 'LOW':
             case 'L':
             case 'AMOUNT':
+            case 'AMO':
+            case 'VOLINSTK':
                 return this.SymbolData.GetSymbolCacheData(name);
             case 'VOLR':
                 return this.SymbolData.GetVolRateCacheData(node);
@@ -9467,6 +9474,7 @@ function JSExecute(ast,option)
                     let isShow=true;
                     let isExData=false;
                     let isDotLine=false;
+                    let isOverlayLine=false;    //叠加线
                     for(let j in item.Expression.Expression)
                     {
                         let itemExpression=item.Expression.Expression[j];
@@ -9494,6 +9502,7 @@ function JSExecute(ast,option)
                             else if (value.indexOf('LINETHICK')==0) lineWidth=value;
                             else if (value.indexOf('NODRAW')==0) isShow=false;
                             else if (value.indexOf('EXDATA')==0) isExData=true; //扩展数据, 不显示再图形里面
+                            else if (value.indexOf('LINEOVERLAY')==0) isOverlayLine=true;
                         }
                         else if(itemExpression.Type==Syntax.Literal)    //常量
                         {
@@ -9558,6 +9567,7 @@ function JSExecute(ast,option)
                         if (isShow == false) value.IsShow = false;
                         if (isExData==true) value.IsExData = true;
                         if (isDotLine==true) value.IsDotLine=true;
+                        if (isOverlayLine==true) value.IsOverlayLine=true;
                         this.OutVarTable.push(value);
                     }
                     else if (draw)  //画图函数
@@ -9582,6 +9592,7 @@ function JSExecute(ast,option)
                         if (isShow==false) value.IsShow=false;
                         if (isExData==true) value.IsExData = true;
                         if (isDotLine==true) value.IsDotLine=true;
+                        if (isOverlayLine==true) value.IsOverlayLine=true;
                         this.OutVarTable.push(value);
                     }
                 }
@@ -10363,6 +10374,33 @@ function ScriptIndex(name,script,args,option)
         hqChart.ChartPaint.push(line);
     }
 
+    this.CreateOverlayLine=function(hqChart,windowIndex,varItem,id)
+    {
+        let line=new ChartSubLine();
+        line.Canvas=hqChart.Canvas;
+        line.DrawType=1;
+        line.Name=varItem.Name;
+        line.ChartBorder=hqChart.Frame.SubFrame[windowIndex].Frame.ChartBorder;
+        line.ChartFrame=hqChart.Frame.SubFrame[windowIndex].Frame;
+        if (varItem.Color) line.Color=this.GetColor(varItem.Color);
+        else line.Color=this.GetDefaultColor(id);
+
+        if (varItem.LineWidth) 
+        {
+            let width=parseInt(varItem.LineWidth.replace("LINETHICK",""));
+            if (!isNaN(width) && width>0) line.LineWidth=width;
+        }
+
+        if (varItem.IsDotLine) line.IsDotLine=true; //虚线
+        if (varItem.IsShow==false) line.IsShow=false;
+        
+        let titleIndex=windowIndex+1;
+        line.Data.Data=varItem.Data;
+        hqChart.TitlePaint[titleIndex].Data[id]=new DynamicTitleData(line.Data,varItem.Name,line.Color);
+
+        hqChart.ChartPaint.push(line);
+    }
+
     //创建柱子
     this.CreateBar=function(hqChart,windowIndex,varItem,id)
     {
@@ -10734,6 +10772,19 @@ function ScriptIndex(name,script,args,option)
         hqChart.ChartPaint.push(chart);
     }
 
+    this.CreateMultiBar=function(hqChart,windowIndex,varItem,i)
+    {
+        let chart=new ChartMultiBar();
+        chart.Canvas=hqChart.Canvas;
+        chart.Name=varItem.Name;
+        chart.ChartBorder=hqChart.Frame.SubFrame[windowIndex].Frame.ChartBorder;
+        chart.ChartFrame=hqChart.Frame.SubFrame[windowIndex].Frame;
+
+        chart.Data=hqChart.ChartPaint[0].Data;//绑定K线
+        chart.Bars=varItem.Draw.DrawData; 
+        hqChart.ChartPaint.push(chart);
+    }
+
     this.CreateMultiText=function(hqChart,windowIndex,varItem,i)
     {
         let chart=new ChartMultiText();
@@ -10795,10 +10846,21 @@ function ScriptIndex(name,script,args,option)
     this.BindInstructionData=function(hqChart,windowIndex,hisData)  //绑定指示指标
     {
         if (this.OutVar==null || this.OutVar.length<0) return;
+
+        //参数
+        var indexParam='';
+        for(let i in this.Arguments)
+        {
+            let item=this.Arguments[i];
+            if (indexParam.length>0) indexParam+=',';
+            indexParam+=item.Value.toString();
+        }
+        if (indexParam.length>0) indexParam='('+indexParam+')';
+
         if (this.InstructionType==2)        //五彩K线
         {
             let varItem=this.OutVar[this.OutVar.length-1]; //取最后一组数据作为指示数据
-            hqChart.SetInstructionData(this.InstructionType, {Data:varItem.Data, Name:this.Name, ID:this.ID });       //设置指示数据
+            hqChart.SetInstructionData(this.InstructionType, {Data:varItem.Data, Name:this.Name, Param:indexParam, ID:this.ID });       //设置指示数据
             return true;
         }
         else if (this.InstructionType==1)   //交易系统
@@ -10811,7 +10873,7 @@ function ScriptIndex(name,script,args,option)
                 else if (item.Name=='EXITLONG') sellData=item.Data;
             }
 
-            hqChart.SetInstructionData(this.InstructionType, {Buy:buyData, Sell:sellData, Name:this.Name, ID:this.ID});       //设置指示数据
+            hqChart.SetInstructionData(this.InstructionType, {Buy:buyData, Sell:sellData, Name:this.Name, Param:indexParam, ID:this.ID});       //设置指示数据
             return true;
         }
     }
@@ -10861,7 +10923,8 @@ function ScriptIndex(name,script,args,option)
 
             if (item.Type==0)  
             {
-                this.CreateLine(hqChart,windowIndex,item,i);
+                if (item.IsOverlayLine) this.CreateOverlayLine(hqChart,windowIndex,item,i);
+                else this.CreateLine(hqChart,windowIndex,item,i);
             }
             else if (item.Type==1)
             {
@@ -10913,6 +10976,9 @@ function ScriptIndex(name,script,args,option)
                         break;
                     case 'MULTI_LINE':
                         this.CreateMultiLine(hqChart,windowIndex,item,i);
+                        break;
+                    case 'MULTI_BAR':
+                        this.CreateMultiBar(hqChart,windowIndex,item,i);
                         break;
                     case 'MULTI_TEXT':
                         this.CreateMultiText(hqChart,windowIndex,item,i);
@@ -11957,6 +12023,16 @@ function APIScriptIndex(name,script,args,option)
                     result.push(outVarItem);
                 }
                 else if (draw.DrawType=='MULTI_LINE')
+                {
+                    drawItem.Text=draw.Text;
+                    drawItem.Name=draw.Name;
+                    drawItem.DrawType=draw.DrawType;
+                    drawItem.DrawData=this.FittingMultiLine(draw.DrawData,date,time,hqChart);
+                    outVarItem.Draw=drawItem;
+
+                    result.push(outVarItem);
+                }
+                else if (draw.DrawType=='MULTI_BAR')
                 {
                     drawItem.Text=draw.Text;
                     drawItem.Name=draw.Name;

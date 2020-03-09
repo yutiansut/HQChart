@@ -176,7 +176,9 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 44. [HQChart使用教程51-指标切换按钮事件说明-h5版本](https://blog.csdn.net/jones2000/article/details/103187576) <br>
 45. [HQChart使用教程52-自定义手机端K线图Tooltip](https://blog.csdn.net/jones2000/article/details/103820718) <br>
 46. [HQChart使用教程53-log日志输出控制](https://blog.csdn.net/jones2000/article/details/104122774) <br>
-
+47. [HQChart使用教程54- K线缩放控制按钮接口说明](https://blog.csdn.net/jones2000/article/details/104346016) <br>
+48. [HQChart使用教程55- 自定义PC端K线图Tooltip](https://blog.csdn.net/jones2000/article/details/104443471) <br>
+49. [HQChart使用教程56-内置品种对应后缀列表说明](https://blog.csdn.net/jones2000/article/details/104457569) <br>
 
 ## 小程序教程
 1. [HQChart小程序教程1-如何快速的创建一个K线图](https://developers.weixin.qq.com/community/develop/article/doc/0006c451ac81589915b89d1c55bc13) <br>
@@ -215,6 +217,7 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 15. [HQChart使用教程30-K线图如何对接第3方数据15-轮询增量更新1分钟K线数据](https://blog.csdn.net/jones2000/article/details/102518422) <br>
 16. [HQChart使用教程30-K线图如何对接第3方数据16-日K叠加股票](https://blog.csdn.net/jones2000/article/details/102661873) <br>
 17. [HQChart使用教程30-K线图如何对接第3方数据17-分钟K叠加股票](https://blog.csdn.net/jones2000/article/details/102887690) <br>
+18. [HQChart使用教程30-K线图如何对接第3方数据18-如何绘制自定义柱子](https://blog.csdn.net/jones2000/article/details/104417736)<br>
 
 ## 实战教程
 1. [HQChart实战教程1-外汇分时图](https://blog.csdn.net/jones2000/article/details/103254501) <br>
@@ -222,6 +225,8 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 3. [HQChart实战教程3-http+ws对接分钟K线数据](https://blog.csdn.net/jones2000/article/details/103882063) <br>
 4. [HQChart实战教程4-http+ws对接日K线数据](https://blog.csdn.net/jones2000/article/details/103966271) <br>
 5. [HQChart实战教程5-http+ws对接单日分时图数据](https://blog.csdn.net/jones2000/article/details/103966925) <br>
+6. [HQChart实战教程6-自定义分时图](https://blog.csdn.net/jones2000/article/details/104165374) <br>
+7. [HQChart实战教程7-自定义显示手势点击K线显示信息](https://blog.csdn.net/jones2000/article/details/104168610) <br>
 
 
 ## 设计文档:
@@ -244,6 +249,7 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 [综合排名页面地址](https://opensource2.zealink.com/vuehqweb/stockmultiorder.demo.page.html) <br><br>
    
 ## 基于VUE版本给客户开发的样例
+![PC行情页面](/小程序行情模块用例/image/hqchart_pc_demo1.png) <br>
 [指数行情页面黑色风格](https://opensource2.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sh&colorType=black) <br>
 [个股行情页面白色风格](https://opensource2.zealink.com/cninfoHq/oneStockHq.html?symbol=000001.sz) <br>
 [代码地址(vue.demo/infoHqdemo)](/vue.demo/infoHqdemo) <br>
@@ -262,6 +268,7 @@ React 例子:[demo-react.md](/教程/demo-react.md) <br>
 ## 第3方数据对接样例
 1. 数字货币对接 <br>
    数据来源： https://www.coinzeus.io/cn <br>
+   ![行情页面](/小程序行情模块用例/image/hqchart_bit_demo1.png) <br>
    [h5测试页面](https://opensource.zealink.com/hqweb/bitdemo/stockhq.html) <br>
    [代码地址(vue.demo/bitdemo)](/vue.demo/bitdemo) <br>
 
